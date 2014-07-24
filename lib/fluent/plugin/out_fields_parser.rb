@@ -5,7 +5,6 @@ module Fluent
     config_param :remove_tag_prefix,  :string, :default => nil
     config_param :add_tag_prefix,     :string, :default => nil
     config_param :parse_key,          :string, :default => 'message'
-    config_param :fields_key,         :string, :default => nil
     config_param :pattern,            :string,
                  :default => %{([a-zA-Z_]\\w*)=((['"]).*?(\\3)|[\\w.@$%/+-]*)}
 
@@ -37,7 +36,7 @@ module Fluent
 
     def parse_fields(record)
       source = record[parse_key].to_s
-      target = fields_key ? (record[fields_key] ||= {}) : record
+      target = {}
 
       source.scan(compiled_pattern) do |match|
         (key, value, begining_quote, ending_quote) = match
@@ -48,7 +47,7 @@ module Fluent
         to_pos = value.length - ending_quote.to_s.length - 1
         target[key] = value[from_pos..to_pos]
       end
-      return record
+      return target
     end
   end
 end
