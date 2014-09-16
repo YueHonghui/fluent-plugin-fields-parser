@@ -15,7 +15,16 @@ module Fluent
     def emit(tag, es, chain)
       tag = update_tag(tag)
       es.each { |time, record|
-        Engine.emit(tag, time, parse_fields(record))
+        target = {}
+        source = record[parse_key].to_s
+        begin
+          target = parse_fields(source)
+        rescue ArgumentError => e
+          raise e unless e.message.index("invalid byte sequence in") == 0
+          source = source.encode('UTF-8', 'GB18030', :invalid => :replace, :undef => :replace, :replace => '?')
+          target = parse_fields(source)
+        end
+        Engine.emit(tag, time, target)
       }
       chain.next
     end
@@ -34,8 +43,7 @@ module Fluent
       return tag
     end
 
-    def parse_fields(record)
-      source = record[parse_key].to_s
+    def parse_fields(source)
       target = {}
 
       source.scan(compiled_pattern) do |match|
